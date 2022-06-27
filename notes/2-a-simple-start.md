@@ -100,16 +100,16 @@ func main() {
 # Quiz 1: Test Your Knowledge: Packages
 _editor's note: sometimes there is information tested in the quizes that weren't covered in the slides, so it's worth paying close attention to them_
 
-## Q1: What is the purpose of a package in Go?
+__Q1: What is the purpose of a package in Go?__
 To group together code with a similar purpose
 
-## Q2: What is the special name we use for a package to tell Go that we want it to be turned into a file that can be executed?
+__Q2: What is the special name we use for a package to tell Go that we want it to be turned into a file that can be executed?__
 main
 
-## Q3: The one requirement of packages named "main" is that we...
+__Q3: The one requirement of packages named "main" is that we...__
 Define a function named "main", which is ran automatically when the program runs
 
-## Q4: Why do we use "import" statements?
+__Q4: Why do we use "import" statements?__
 To give our package access to code written in another package
 
 # 12. How to Access Course Diagrams
