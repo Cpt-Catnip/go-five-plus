@@ -927,14 +927,205 @@ func (d deck) shuffle() {
 ```
 
 # 32. Testing With Go
+* Yay! (genuine)
+* This will be testing generally, not for our deck stuff
+* testing interface is pretty small compared to things like mocha
+* test files end in `_test.go`
+* to run the tests, run `go test`
+* Oh that was dissappointingly short
 
 # 33. Writing Useful Tests
+* This isn't brought up anywhere, but to get this section to work I needed to run `go mod init cards` in the cards folder.
+  * don't have to name the mod "cards", run `go help mod init` or look up docs for more info
+* How do we know what to test? It's up to you! It depends on what you care about.
+* lecturer has three criteria (for new deck)
+  * it should have four (or however many) items in it
+  * first card should be "Ace of Spades"
+  * last card should be "Four of Spades"
+* To test a certain function, say `newDeck`, write a function in the test file called `TestNewDeck`. Simple enough.
+* You can also make test functions that test two functions, like `TestSaveToDeckandNewDeckFromFile`
+  * I don't know if there are actualy rules on what these functions have to be called. Probably just one test = one function and you _should_ name those functions something helpful
+  * Seems the convention is to capitalize all letters except 'and' (Pascal Case*)
+* ALL test functions get passed a parameter with type `*testing.T`, so the signature of you tests should looke like `func TestFunc(t *testing.T)`
+* `t` is the _test handler_
+* If something unexpected happens, typically caught with an `if` statement, tell the test runner there was an error with `t.ErrorF`
+  * lecturer _doens't_ pass a formatting string and gets away with it but I can't in go 1.18.3
+
+```go
+// deck_test.go
+package main
+
+import "testing"
+
+func TestNewDeck(t *testing.T) {
+	d := newDeck()
+
+	if len(d) != 16 {
+		t.Errorf("Expected deck length of 16, but got %d", len(d))
+	}
+}
+```
+
+* He's talking about string formatting right now, which I know about
+  * [string formatting: go by example](https://gobyexample.com/string-formatting)
+* I hope there's an analog to string literals in go
+* Seems like you don't have to explicitly state that a test passed
 
 # 34. Asserting Elements in a Slice
+* Observation from auto-fomatting: go doesn't like superfluous white space
+  * depends on context though
+  * `x := 5 - 3`
+  * `d[len(d)-1]`
+* test now
+
+```go
+package main
+
+import "testing"
+
+func TestNewDeck(t *testing.T) {
+	d := newDeck()
+
+	if len(d) != 16 {
+		t.Errorf("Expected deck length of 16, but got %d", len(d))
+	}
+
+	if d[0] != "Ace of Spades" {
+		t.Errorf("Expected first card of Ace of Spades, but got %v", d[0])
+	}
+
+	if d[len(d)-1] != "Four of Clubs" {
+		t.Errorf("Expected last card of Four of Clubs, but got %v", d[len(d)-1])
+	}
+}
+```
+
+* running `go test` yields
+
+```bash
+$ go test
+PASS
+ok  	cards	0.213s
+```
+
+* go doesn't know that we wrote three tests. Just that it never got an error.
+  * Or does it only thing there's one test?
+  * Yeah it's just "The Tests™"
 
 # 35. Testing File IO
+* Will be slightly more complicated that you might think
+* Consider the edge case where the test crashes when trying to load a file
+  * we never get to run cleanup! This gets done _by us_.
+* To resolve this, we'll delete any files with the name `_decktesting` at the begnning and end of all IO tests
+  * might want to write a `cleanup` function or something
+* To delete a file, use [os.Remove](https://pkg.go.dev/os@go1.18.3#Remove)
+  * `func Remove(name string) error`
+* Gonna ignore error I guess?
+* Motivation behind chunky test names is to be able to easily find tests that correspond to given function
+* Done with Project!
+
+```go
+// deck_test.go
+package main
+
+import (
+	"os"
+	"testing"
+)
+
+func TestNewDeck(t *testing.T) {
+	d := newDeck()
+
+	if len(d) != 16 {
+		t.Errorf("Expected deck length of 16, but got %d", len(d))
+	}
+
+	if d[0] != "Ace of Spades" {
+		t.Errorf("Expected first card of Ace of Spades, but got %v", d[0])
+	}
+
+	if d[len(d)-1] != "Four of Clubs" {
+		t.Errorf("Expected last card of Four of Clubs, but got %v", d[len(d)-1])
+	}
+}
+
+func TestSaveToDeckAndNewDeckFromFile(t *testing.T) {
+	testFileName := "_decktesting"
+
+	os.Remove(testFileName)
+
+	deck := newDeck()
+	deck.saveToFile(testFileName)
+
+	loadedDeck := newDeckFromFile(testFileName)
+
+	if len(loadedDeck) != 16 {
+		t.Errorf("Expected 16 cards in deck, got %d", len(loadedDeck))
+	}
+
+	os.Remove(testFileName)
+}
+```
 
 # 36. Project Review
+* All files start with the package name
+* executable packages need to be named `main`
+* Import packages after package declaration
+* Custom data types can be created with the `type` keyword
+* These types can be used the same as any other type in go
+* receiver functions are functions that are called on _instances_ of data types
+* receiver functions "receive" references to the "instances" they're called on
+* slices are similar - not the same - to arrays in other languages
+* Lecturer _didn't_ make `deal` a receiver function because _he_ feels that seeing `cards.deal(5)` makes it _seem_ like the original `cards` slice is being modified, which isn't the case (given how we wrote it)
+  * whether or not we modified the underlying slice is apparently _very_ important
+* the `*` thing is in reference to the next thing we're going to talk about :)
 
 # Assignment 1: Even and Odd
+<blockquote>
+    <p>In this assignment you'll get some practice with slices and for loops.</p>
+    <p>Here are the directions:</p>
+    <ol>
+      <li>Create a new project folder to house this new project and create a 'main.go' file inside of it.</li>
+      <li>In the main.go file, define a function called 'main'.  Remember that the 'main' function will be called automatically.</li>
+      <li>In the main function, create a slice of ints from 0 through 10</li>
+      <li>Iterate through the slice with a for loop.  For each element, check to see if the number is even or odd.</li>
+      <li>If the value is even, print out "even".  If it is odd, print out "odd"</li>
+      <li>Run your code from the terminal by changing into your project directory then running 'go run main.go'.</li>
+    </ol>
+</blockquote>
 
+Output should look like this
+```plaintext
+0 is even
+1 is odd
+2 is even
+3 is odd
+4 is even
+5 is odd
+6 is even
+7 is odd
+8 is even
+9 is odd
+10 is even
+```
+_editors note: formatting it like this was a pain in the ass and I won't be doing it again_
+
+Solution:
+```go
+package main
+
+import "fmt"
+
+func main() {
+	// just to explicitly make a slice and not an array
+	nums := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+
+	for i := range nums {
+		if i%2 == 0 {
+			fmt.Printf("%d is even\n", i)
+		} else {
+			fmt.Printf("%d is odd\n", i)
+		}
+	}
+}
+```
