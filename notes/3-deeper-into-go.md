@@ -361,6 +361,7 @@ func newCard() string {
 * I'm getting an error when trying to initialize `cards`
   * undeclared name: deck compiler (UndeclaredName)
   * It might be resolved in a bit- hold tight
+  * __update__: VSCode is confused because I have the entore folder open, not just the cards module. Run `code ~/code/go-five-plus/cards` and there's no error
 * To run the script now, we have to tell go about both files, otherwise `main.go` won't know about the deck type
 
 ```bash
@@ -446,28 +447,484 @@ func (this laptopSize) getSizeOfLaptop() laptopSize {
 * Yes, but it breaks convention by using `this`
 
 # 21. Creating a New Deck
+* Create and return a list of playing cards (deck)
+* This will _not_ be a receiver function; receiver functions act on "instances" of a type but we don't have a deck to operate on yet
+* Going to build this deck using a nested loop
+  * have two slices, one for sutis and one for values
+  * for each suit, iterate over each value
+  * add "value of suit" to deck
+* We're making these slices string slices since it's _just_ the suit or value and a card is a suit _and_ value.
+* the `range` keyword creates an iterable (not sure go syntax here) that returns the index and value- what if we don't need the index?
+* You can replace an output with `_` (underscore) to tell go that we're not using this return value. This also suppresses compiler errors for unused vars.
+* Code now looks like
+
+```go
+// main.go
+package main
+
+func main() {
+	cards := newDeck()
+
+	cards.print()
+}
+
+// deck.go
+package main
+
+import "fmt"
+
+// Create a new type of "deck"
+// which is a slice of strings
+type deck []string
+
+func newDeck() deck {
+	cards := deck{}
+
+	cardSuits := []string{"Spades", "Diamonds", "Hearts", "Clubs"}
+	cardValues := []string{"Ace", "Two", "Three", "Fout"}
+
+	for _, suit := range cardSuits {
+		for _, value := range cardValues {
+			cards = append(cards, value+" of "+suit)
+		}
+	}
+
+	return cards
+}
+
+func (d deck) print() {
+	for i, card := range d {
+		fmt.Println(i, card)
+	}
+}
+```
 
 # 22. Slice Range Syntax
+* Gonna make the `deal` function now
+  * accept a deck and a number of cards to deal, return new deck of specified size
+* Essentially transforming a deck into two decks
+* If a deck has $N$ cards and we're dealing a hand with $x$ cards, we should expect
+  * a deck with $x$ cards (the dealt hand)
+  * a deck with $N - x$ cards (the remaining deck)
+* To do this, we need to use some slice methods
+* Slices are zero-indexed
+* Slices use square bracket notation (`slc[n]`)
+* We can use the range notation for getting values from a slice
+* `slc[i:j]` returns the values on the half-open interval $[i, j)$
+  * i.e. inclusive of `i` and exclusive of `j`
+* ex:
+
+```go
+fruits := []string{"apple", "banana", "grape", "orange"}
+
+fmt.Println(frutis[1])    // banana
+fmt.Println(frutis[0:2])  // ["apple", "banana"]
+```
+
+* Like python, you can omit _either_ `i` or `j`
+  * `slc[:j]`: means from the beginning and until, but not including, `j`
+  * `slc[i:]`: means from `i` until the end, inclusive
+* We can utilize this to easily split a deck into a hand and deck
+  * `cards[:handSize]` and `cards[handSize:]`, respectively
 
 # 23. Multiple Return Values
+* Lets write!
+* This function has arguments! Args need to be typed and you can't pass in args with types other than what's specified in the signature
+* syntax is `func fnName(arg1 type1, arg2 type2) { ... }`
+* Go supports returning multiple values
+* Instead of just adding the type of the return before the `{`, put all the types in a parenthesis separated by commas
+  * `func fn() (rt1, rt2) { ... }`
+* Here we have _not_ made a receiver function. I think this is because we're not doing an operation _on_ a deck, rather we're creating two new decks
+  * there's an implication here that receiver functions shouldn't create new things or modify the thing it's operating on. Keep an eye on that assumption, Mike.
+* To capture both return values, use a comma (already saw this with `range`)
+
+```go
+// main.go
+hand, remainingCards := deal(cards, 5)
+
+// deck.go
+func deal(d deck, handSize int) (deck, deck) {
+	return d[:handSize], d[handSize:]
+}
+```
+
+* we're using the shorthand assignment operator for _both_ vars here. We can infer from what we say in `range` that the types don't have to be the same for this to work
+  * we use `i, val := range slc` where `i` is _always_ an integer and `val` can be any arbitrary type
 
 # Quiz 6: Test Your Knowledge: Multiple Return Values
+__Q1: In the following code snippet, what will the value and type of `title` and `pages` be?
+```go
+func getBookInfo() (string, int) {
+    return "War and Peace", 1000
+}
+ 
+title, pages := getBookInfo()
+```
+* `string` and `int` respectively
+  * lol I picked the wrong answer; I don't think my meds have fully kicked in yet
+
+__Q2: What will the following program log out?__
+```go
+package main
+ 
+import "fmt"
+ 
+func main() {
+    color1, color2, color3 := colors()
+ 
+    fmt.Println(color1, color2, color3)
+}
+ 
+func colors() (string, string, string) {
+    return "red", "yellow", "blue"
+}
+```
+* "red yellow blue`
+
+__Q3: What will the following program log out?__
+```go
+package main
+ 
+import "fmt"
+ 
+func main() {
+   c := color("Red")
+ 
+   fmt.Println(c.describe("is an awesome color"))
+}
+ 
+type color string
+ 
+func (c color) describe(description string) (string) {
+   return string(c) + " " + description
+}
+```
+* "Red is an awesome color"
+
+__Q4: Which of the following best explains the `describe` function listed below?__
+```go
+package main
+ 
+import "fmt"
+ 
+func main() {
+   c := color("Red")
+ 
+   fmt.Println(c.describe("is an awesome color"))
+}
+ 
+type color string
+ 
+func (c color) describe(description string) (string) {
+   return string(c) + " " + description
+}
+```
+* color receiver func, accepts string, returns string
+
+__Q5: After calling "deal" and passing in "cards", does the list of strings that the "cards" variable point at change?  In other words, did we modify the 'cards' slice by calling 'deal'?__
+```go
+func main() {
+    cards := newDeck()
+ 
+    hand, remainingCards := deal(cards, 5)
+ 
+    hand.print()
+    remainingCards.print()
+}
+```
+* Great question. Kind of gets at whether or not slice range returns new slices or references to the original slice. Like what's the first index of `remainingCards`, `0` or `5`?
+* I think the answer it no, cards will be the same but we can modify `cards` by modifying `hand` or `remainingCards`
+> Answer: You got it. We created two new references that point at subsections of the 'cards' slice. We never directly modified the slice that 'cards' is pointing at.
+* I'm so smart (and have taken this part of the course before)
 
 # 24. Byte Slices
+* covering `saveToFile`; how do we save the deck to our harddrive?
+* can use [ioutil.WriteFile](https://pkg.go.dev/io/ioutil@go1.18.3#WriteFile) to write to disk
+  * Write to new or existing file
+  * signature: `func WriteFile(filename string, data []byte, perm fs.FileMode) error`
+* the data has a type `[]byte`, a byte slice.
+* the third arg is permisions
+* How do we convert our deck instance (`[]string`) into a byte slice?
+* A byte slice is a slice of ascii character codes (decimal), essentially
+  * represents a string in a computer-friendly way
 
 # 25. Deck to String
+* _actually_ covering `saveToFile`, lol
+* We can use "type conversion" to switch between types
+* syntax is something like `desiredType(varWithOtherType)`
+  * e.g. `[]byte("Hi there!")` becomes `[72 105 32 116 104 101 114 101 33]`
+* want `deck -> []string -> string -> []byte`
+* Gonna start with a function that turns a deck into a string
+* note we _are_ making this a receiver function. I guess it's not explicitly modifying the original `deck` so maybe it's kosher? Lecturer says we'll talk more about when to use a recevier later on
 
 # 26. Joining a Slice of Strings
+* to go from `[]string` to `string`, we can joing all strings in the slice on `,` using [strings.Join](https://pkg.go.dev/strings@go1.18.3#Join)
+* `func Join(elems []string, sep string) string`
+  * need to import `strings` to use this
+* When using multiple imports, wrap all imports in parenthesis and separate each package with a newline
+
+* Where we're at
+
+```go
+// main.go
+package main
+
+import "fmt"
+
+func main() {
+	cards := newDeck()
+	fmt.Println(cards.toString())
+}
+
+// deck.go
+package main
+
+import (
+	"fmt"
+	"strings"
+)
+
+// Create a new type of "deck"
+// which is a slice of strings
+type deck []string
+
+func newDeck() deck {
+	cards := deck{}
+
+	cardSuits := []string{"Spades", "Diamonds", "Hearts", "Clubs"}
+	cardValues := []string{"Ace", "Two", "Three", "Fout"}
+
+	for _, suit := range cardSuits {
+		for _, value := range cardValues {
+			cards = append(cards, value+" of "+suit)
+		}
+	}
+
+	return cards
+}
+
+func (d deck) print() {
+	for i, card := range d {
+		fmt.Println(i, card)
+	}
+}
+
+func deal(d deck, handSize int) (deck, deck) {
+	return d[:handSize], d[handSize:]
+}
+
+func (d deck) toString() string {
+	return strings.Join([]string(d), ",")
+}
+```
+
+* yields 
+
+```bash
+Ace of Spades,Two of Spades,Three of Spades,Fout of Spades,Ace of Diamonds,Two of Diamonds,Three of Diamonds,Fout of Diamonds,Ace of Hearts,Two of Hearts,Three of Hearts,Fout of Hearts,Ace of Clubs,Two of Clubs,Three of Clubs,Fout of Clubs
+```
 
 # 27. Saving Data to the Hard Drive
+* NOW we can write to a file
+* Will utilize the `error` type
+* Wowww when autocompleting `d.toString` in the function call, VSCode automatically cast it to `[]byte`
+* The permissions argument is in case the file doesn't already exist
+
+```go
+func (d deck) saveToFile(filename string) error {
+	return ioutil.WriteFile(filename, []byte(d.toString()), 0666)
+}
+```
+
+* note that ioutil gets imported as `io/ioutil` in the import statement
+* Looks like `ioutil.WriteFile` writes to current directory if no path is specified
 
 # 28. Reading From the Hard Drive
+* gonna use [ioutil.ReadFile](https://pkg.go.dev/io/ioutil@go1.18.3#ReadFile)
+* `func ReadFile(filename string) ([]byte, error)`
+  * oop! this returns an error! Gonna learn fun error handling
+* What _is_ this `error` thing?
+* If everything goes according to plan, `error` will be `nil`
+  * `nil` is just a type of data in go that means "nothing", so "there is no error"
+* otherwise, `error` will be non-nil
+* to check if there was an error, we want to check that `error` is NOT `nil`
+* How to handle an error in go depends strongly on _how_ the code failed
+* To end execution, use [os.Exit](https://pkg.go.dev/os@go1.18.3#Exit)
+* `func Exit(code int)`
+  * any non-zero exit code indicates an error
+* function so far
+
+```go
+func newDeckFromFile(filename string) deck {
+	bs, err := ioutil.ReadFile(filename)
+	if err != nil {
+		fmt.Println("Error:", err)
+		os.Exit(1)
+	}
+}
+```
 
 # 29. Error Handling
+* this `if err != nil` is a __very__ common patter (common complaint)
+* Now we want `[]byte -> string -> []string -> deck`
+* to splig a string, use [strings.Split](https://pkg.go.dev/strings@go1.18.3#Split)
+* `func Split(s string, sep string) []string`
+* lecturer keeps driving home that the reason we can do something like `deck(s)`, where `s` has type `[]string` is because "a deck is really just a slice of string"
+  * makes me think converting to a custom type is usually more hands on and _maybe_ there's a way to define how that conversion happens so you can still type `customType(someVar)`
+
+```go
+// main.go
+func main() {
+	cards := newDeckFromFile("my_cards")
+	cards.print()
+}
+
+// deck.go
+func newDeckFromFile(filename string) deck {
+	bs, err := ioutil.ReadFile(filename)
+	if err != nil {
+		fmt.Println("Error:", err)
+		os.Exit(1)
+	}
+
+	s := strings.Split(string(bs), ",")
+	return deck(s)
+}
+```
+
+* if we try to open a file called `my`, we get the following error message
+```bash
+$ go run main.go deck.go
+Error: open my: no such file or directory
+exit status 1
+```
 
 # 30. Shuffling a Deck
+* how to be shuffling deck?
+* Want to randomize the order of all the cards in the deck
+  * same elements and number of elements
+* logic we're going to use
+
+```plaintext
+for each idx, card in cards:
+  generate random number btwn 1 and len(cards) - 1
+  swap cards[idx] and cards[randomIdx]
+```
+
+* Pretty sure this isn't a true shuffling but oh well, not necessary to be rigorous here
+* how to be gen random number? Use [Intn](https://pkg.go.dev/math/rand@go1.18.3#Intn)
+  * `func Intn(n int) int`
+  * generates a pseudo-random integer on the half-open interval $[0, n)$
+* making this a receiver func
+* using `range` but _not_ using the second return value. In this case we don't need to replace it with `_`, we can just say `for i := range d`
+* use `Intn` like `rand.Intn`
+  * why not `math.rand.Intn`? What's the logic here? Got imported as "math/rand"
+* get length of a slice (and probably array?) with `len(slc)`
+* We can use the fun one-line swap like in JS just with out the surrounding brackets- nice
+```go
+func (d deck) shuffle() {
+	for i := range d {
+		newPosition := rand.Intn(len(d) - 1)
+		d[i], d[newPosition] = d[newPosition], d[i]
+	}
+}
+```
+* This will actually return the same randomization _each time_ the code is run
 
 # 31. Random Number Generation
+* the random number generator depends on a _seed value_, which has a default value
+  * need to generate a random seed to generate a random number
+* random number generator depends on the `Rand` type, which has the seed
+* We need to make our own `Rand` object, which depends on a `Source` type
+  * this accepts an `int64`, which we need to generate randomly
+* okay `rand.New(s Source)` actually returns something that looks like `*Rand`
+* This relates to pointers but we haven't gotten there yet so hold tight, but now that it's not returning `Rand`
+* For our random `int64`, we're gonna use nanoseconds since epoch, which __really should__ always be different
+  * use [time.Now()](https://pkg.go.dev/time@go1.18.3#Now)
+  * `func Now() Time`
+* Shuffling is always different now!
+* All caught up!!
+
+```go
+// main.go
+package main
+
+func main() {
+	cards := newDeck()
+	cards.shuffle()
+	cards.print()
+}
+
+// deck.go
+package main
+
+import (
+	"fmt"
+	"io/ioutil"
+	"math/rand"
+	"os"
+	"strings"
+	"time"
+)
+
+// Create a new type of "deck"
+// which is a slice of strings
+type deck []string
+
+func newDeck() deck {
+	cards := deck{}
+
+	cardSuits := []string{"Spades", "Diamonds", "Hearts", "Clubs"}
+	cardValues := []string{"Ace", "Two", "Three", "Four"}
+
+	for _, suit := range cardSuits {
+		for _, value := range cardValues {
+			cards = append(cards, value+" of "+suit)
+		}
+	}
+
+	return cards
+}
+
+func (d deck) print() {
+	for i, card := range d {
+		fmt.Println(i, card)
+	}
+}
+
+func deal(d deck, handSize int) (deck, deck) {
+	return d[:handSize], d[handSize:]
+}
+
+func (d deck) toString() string {
+	return strings.Join([]string(d), ",")
+}
+
+func (d deck) saveToFile(filename string) error {
+	return ioutil.WriteFile(filename, []byte(d.toString()), 0666)
+}
+
+func newDeckFromFile(filename string) deck {
+	bs, err := ioutil.ReadFile(filename)
+	if err != nil {
+		fmt.Println("Error:", err)
+		os.Exit(1)
+	}
+
+	s := strings.Split(string(bs), ",")
+	return deck(s)
+}
+
+func (d deck) shuffle() {
+	source := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(source)
+
+	for i := range d {
+		newPosition := r.Intn(len(d) - 1)
+		d[i], d[newPosition] = d[newPosition], d[i]
+	}
+}
+```
 
 # 32. Testing With Go
 
