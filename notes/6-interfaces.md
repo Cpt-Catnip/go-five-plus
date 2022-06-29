@@ -612,4 +612,3 @@ __Solution:__
 - same thing I did
 - You can actually read in _any_ file
   - if you want print `main.go` you have to first build then run `./main main.go`
-  - oh and also `go mod init`
