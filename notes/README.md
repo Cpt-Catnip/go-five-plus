@@ -6,3 +6,4 @@
 ## [Section 4: Organizing Data With Structs](./4-organizing-data-with-structs.md)
 ## [Section 5: Maps](./5-maps.md)
 ## [Section 6: Interfaces](./6-interfaces.md)
+## [Section 7: Channels and Go Routines](./7-channels-and-go-routines.md)
